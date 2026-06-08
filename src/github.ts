@@ -196,6 +196,7 @@ export function buildManifest(name: string, redirectUrl: string, isPublic: boole
       pull_requests: 'write',
       issues: 'write',
       contents: 'write',
+      workflows: 'write',
       metadata: 'read',
     },
     default_events: [
