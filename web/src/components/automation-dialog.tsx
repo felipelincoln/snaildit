@@ -122,7 +122,7 @@ export function AutomationDialog({
 
           <Textarea
             aria-label="Prompt"
-            className="min-h-28"
+            className="max-h-64 min-h-28 overflow-y-auto"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="What should the bot do? e.g. Review this pull request and leave inline comments."
