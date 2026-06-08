@@ -44,7 +44,7 @@ function AutomationRow({
   onChanged: () => void
 }) {
   const [busy, setBusy] = useState(false)
-  const n = automation.trigger_actions.length
+  const n = automation.triggers.length
   const toggle = async (enabled: boolean) => {
     setBusy(true)
     try {
@@ -63,7 +63,7 @@ function AutomationRow({
         onClick={onEdit}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <TriggerIcon event={automation.trigger_event} />
+        <TriggerIcon event={automation.triggers[0]?.event ?? ''} />
         <span className="max-w-56 shrink-0 truncate text-sm">{automation.name}</span>
         <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">{automation.trigger_repo}</span>
         {!connected && (

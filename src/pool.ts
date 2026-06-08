@@ -58,12 +58,7 @@ export function wakeWorkers(): void {
 function runContext(job: LeasedJob, automation: Automation): RunContext {
   const url = `https://github.com/${job.repo_full_name}/${job.type === 'pull_request' ? 'pull' : 'issues'}/${job.number}`
   const base = { repository_id: job.repository_id, repo: job.repo_full_name, number: job.number, type: job.type, url }
-  const matching = matchingDeliveries(
-    job.repository_id,
-    job.number,
-    automation.trigger_event,
-    automation.trigger_actions,
-  )
+  const matching = matchingDeliveries(job.repository_id, job.number, automation.triggers)
   if (matching.length === 0) return { ...base, action: null, updates: [] }
   const since = lastSuccessfulRunStartedAt(automation.id, job.repository_id, job.number)
   const windowed = since ? matching.filter((d) => d.received_at > since) : matching

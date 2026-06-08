@@ -6,7 +6,6 @@ export function matchAutomations(e: Extracted): Automation[] {
     (a) =>
       a.enabled &&
       a.trigger_repo_id === e.repository_id &&
-      a.trigger_event === e.event_type &&
-      a.trigger_actions.includes(e.action),
+      a.triggers.some((t) => t.event === e.event_type && t.actions.includes(e.action)),
   )
 }

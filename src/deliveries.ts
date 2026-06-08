@@ -1,5 +1,6 @@
 import { renameSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
+import type { Trigger } from './automations.js'
 import { ensureConfigDir, paths } from './config.js'
 import type { Extracted } from './extract.js'
 import { log } from './log.js'
@@ -148,21 +149,16 @@ export interface MatchingDelivery {
   received_at: string
 }
 
-export function matchingDeliveries(
-  repositoryId: number,
-  number: number,
-  eventType: string,
-  actions: string[],
-): MatchingDelivery[] {
-  if (actions.length === 0) return []
-  const placeholders = actions.map(() => '?').join(', ')
-  return openDb()
+export function matchingDeliveries(repositoryId: number, number: number, triggers: Trigger[]): MatchingDelivery[] {
+  if (triggers.length === 0) return []
+  const rows = openDb()
     .prepare(
       `SELECT event_type, action, received_at FROM deliveries
-        WHERE repository_id = ? AND number = ? AND event_type = ? AND action IN (${placeholders})
+        WHERE repository_id = ? AND number = ?
         ORDER BY received_at DESC`,
     )
-    .all(repositoryId, number, eventType, ...actions) as unknown as MatchingDelivery[]
+    .all(repositoryId, number) as unknown as MatchingDelivery[]
+  return rows.filter((d) => triggers.some((t) => t.event === d.event_type && t.actions.includes(d.action)))
 }
 
 export function ingestDelivery(deliveryId: string, e: Extracted, receivedAt: string): boolean {

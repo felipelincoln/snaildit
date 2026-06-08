@@ -45,12 +45,16 @@ export interface Repo {
   full_name: string
 }
 
+export interface Trigger {
+  event: string
+  actions: string[]
+}
+
 export interface Automation {
   id: string
   name: string
   enabled: boolean
-  trigger_event: string
-  trigger_actions: string[]
+  triggers: Trigger[]
   trigger_repo_id: number
   trigger_repo: string
   prompt: string
@@ -65,8 +69,7 @@ export interface NewAutomation {
   prompt: string
   trigger_repo_id: number
   trigger_repo: string
-  trigger_event: string
-  trigger_actions: string[]
+  triggers: Trigger[]
   effort?: string
 }
 
@@ -226,8 +229,7 @@ export type AutomationUpdate = Partial<{
   prompt: string
   trigger_repo_id: number
   trigger_repo: string
-  trigger_event: string
-  trigger_actions: string[]
+  triggers: Trigger[]
   effort: string
   enabled: boolean
 }>

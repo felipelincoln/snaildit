@@ -1,11 +1,15 @@
 import { paths, readJsonFile, writeJsonFileAtomic } from './config.js'
 
+export interface Trigger {
+  event: string
+  actions: string[]
+}
+
 export interface Automation {
   id: string
   name: string
   enabled: boolean
-  trigger_event: string
-  trigger_actions: string[]
+  triggers: Trigger[]
   trigger_repo_id: number
   trigger_repo: string
   prompt: string
@@ -20,8 +24,7 @@ export interface NewAutomation {
   prompt: string
   trigger_repo_id: number
   trigger_repo: string
-  trigger_event: string
-  trigger_actions: string[]
+  triggers: Trigger[]
   effort?: string
   enabled?: boolean
 }
@@ -64,7 +67,7 @@ export function validateRepoId(id: number | null | undefined): number {
 
 export function validateEvent(event: string | null | undefined): string {
   const value = (event ?? '').trim()
-  if (!value) throw new Error('automation trigger_event must be set')
+  if (!value) throw new Error('trigger event must be set')
   if (!EVENT_RE.test(value)) throw new Error(`invalid trigger event: "${value}"`)
   return value
 }
@@ -76,6 +79,20 @@ export function validateActions(actions: string[] | null | undefined): string[] 
     if (!ACTION_RE.test(action)) throw new Error(`invalid trigger action: "${action}"`)
   }
   return list
+}
+
+export function validateTriggers(triggers: Trigger[] | null | undefined): Trigger[] {
+  const list = triggers ?? []
+  if (list.length === 0) throw new Error('automation must have at least one trigger')
+  // Merge duplicate events so a single delivery never matches the same automation twice.
+  const byEvent = new Map<string, Set<string>>()
+  for (const t of list) {
+    const event = validateEvent(t?.event)
+    const set = byEvent.get(event) ?? new Set<string>()
+    for (const action of validateActions(t?.actions)) set.add(action)
+    byEvent.set(event, set)
+  }
+  return [...byEvent].map(([event, actions]) => ({ event, actions: [...actions] }))
 }
 
 export function validateEffort(effort: string | null | undefined): string | undefined {
@@ -114,8 +131,7 @@ export function createAutomation(input: NewAutomation): Automation {
     id,
     name,
     enabled: input.enabled ?? true,
-    trigger_event: validateEvent(input.trigger_event),
-    trigger_actions: validateActions(input.trigger_actions),
+    triggers: validateTriggers(input.triggers),
     trigger_repo_id: validateRepoId(input.trigger_repo_id),
     trigger_repo: validateRepo(input.trigger_repo),
     prompt,
@@ -131,8 +147,7 @@ export function createAutomation(input: NewAutomation): Automation {
 const EDITABLE = [
   'name',
   'enabled',
-  'trigger_event',
-  'trigger_actions',
+  'triggers',
   'trigger_repo_id',
   'trigger_repo',
   'prompt',
@@ -159,11 +174,8 @@ export function updateAutomation(id: string, patch: AutomationPatch): Automation
       case 'prompt':
         next.prompt = validateText(patch.prompt, 'prompt')
         break
-      case 'trigger_event':
-        next.trigger_event = validateEvent(patch.trigger_event)
-        break
-      case 'trigger_actions':
-        next.trigger_actions = validateActions(patch.trigger_actions)
+      case 'triggers':
+        next.triggers = validateTriggers(patch.triggers)
         break
       case 'trigger_repo_id':
         next.trigger_repo_id = validateRepoId(patch.trigger_repo_id)

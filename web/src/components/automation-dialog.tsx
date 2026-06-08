@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react'
-import { CaretDownIcon, CircleNotchIcon, GaugeIcon, ListChecksIcon } from '@phosphor-icons/react'
+import { CaretDownIcon, CircleNotchIcon, GaugeIcon, ListChecksIcon, PlusIcon, XIcon } from '@phosphor-icons/react'
 import { GithubIcon } from '@/components/github-icon'
 import { TriggerIcon } from '@/components/trigger-icon'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ import {
   type Automation,
   type AutomationUpdate,
   type Repo,
+  type Trigger,
   EVENT_ACTIONS,
   EVENT_TYPES,
   createAutomation,
@@ -60,8 +61,13 @@ export function AutomationDialog({
   const [repoId, setRepoId] = useState(
     automation ? String(automation.trigger_repo_id) : repoOptions[0] ? String(repoOptions[0].id) : '',
   )
-  const [event, setEvent] = useState(automation?.trigger_event ?? '')
-  const [actions, setActions] = useState<string[]>(automation?.trigger_actions ?? [])
+  const [triggers, setTriggers] = useState<Trigger[]>(
+    automation && automation.triggers.length > 0 ? automation.triggers : [{ event: '', actions: [] }],
+  )
+  const setTrigger = (i: number, patch: Partial<Trigger>) =>
+    setTriggers((prev) => prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)))
+  const addTrigger = () => setTriggers((prev) => [...prev, { event: '', actions: [] }])
+  const removeTrigger = (i: number) => setTriggers((prev) => prev.filter((_, idx) => idx !== i))
   const [prompt, setPrompt] = useState(automation?.prompt ?? '')
   const defaultEffort = efforts.includes('medium') ? 'medium' : (efforts[0] ?? '')
   const [effort, setEffort] = useState(automation ? (automation.effort ?? '') : defaultEffort)
@@ -69,7 +75,8 @@ export function AutomationDialog({
   const [error, setError] = useState<string | null>(null)
 
   const id = automation ? automation.id : slugify(name)
-  const canSave = id !== '' && repoId !== '' && event !== '' && actions.length > 0 && prompt.trim() !== '' && !busy
+  const triggersValid = triggers.length > 0 && triggers.every((t) => t.event !== '' && t.actions.length > 0)
+  const canSave = id !== '' && repoId !== '' && triggersValid && prompt.trim() !== '' && !busy
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -81,8 +88,7 @@ export function AutomationDialog({
       prompt: prompt.trim(),
       trigger_repo_id: Number(repoId),
       trigger_repo: selectedRepo?.full_name ?? '',
-      trigger_event: event,
-      trigger_actions: actions,
+      triggers,
     }
     try {
       if (automation) {
@@ -130,57 +136,77 @@ export function AutomationDialog({
 
           <div className="flex flex-col gap-2">
             <span className="text-xs text-muted-foreground">Trigger events</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select
-                value={event}
-                onValueChange={(v) => {
-                  setEvent(v)
-                  setActions([])
-                }}
-              >
-                <SelectTrigger size="sm" aria-label="On event" className="gap-2">
-                  <TriggerIcon event={event} className="size-4 shrink-0 text-muted-foreground" />
-                  <SelectValue placeholder="On event" />
-                </SelectTrigger>
-                <SelectContent>
-                  {EVENT_TYPES.map((ev) => (
-                    <SelectItem key={ev} value={ev}>
-                      {ev}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {event && EVENT_ACTIONS[event] && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="outline" size="sm" aria-label="Actions" className="gap-2">
-                      <ListChecksIcon className="size-4 shrink-0 text-muted-foreground" />
-                      {actions.length > 0 ? (
-                        `${actions.length} selected`
-                      ) : (
-                        <span className="text-muted-foreground">Actions</span>
-                      )}
-                      <CaretDownIcon className="size-4 shrink-0 text-muted-foreground" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
-                    {EVENT_ACTIONS[event].map((a) => (
-                      <DropdownMenuCheckboxItem
-                        key={a}
-                        checked={actions.includes(a)}
-                        onCheckedChange={(checked) =>
-                          setActions(checked ? [...actions, a] : actions.filter((x) => x !== a))
-                        }
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        {a}
-                      </DropdownMenuCheckboxItem>
+            {triggers.map((t, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: trigger rows have no stable id; order is preserved
+              <div key={i} className="flex flex-wrap items-center gap-2">
+                <Select value={t.event} onValueChange={(v) => setTrigger(i, { event: v, actions: [] })}>
+                  <SelectTrigger size="sm" aria-label="On event" className="gap-2">
+                    <TriggerIcon event={t.event} className="size-4 shrink-0 text-muted-foreground" />
+                    <SelectValue placeholder="On event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_TYPES.map((ev) => (
+                      <SelectItem key={ev} value={ev}>
+                        {ev}
+                      </SelectItem>
                     ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
+                  </SelectContent>
+                </Select>
+
+                {t.event && EVENT_ACTIONS[t.event] && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" aria-label="Actions" className="gap-2">
+                        <ListChecksIcon className="size-4 shrink-0 text-muted-foreground" />
+                        {t.actions.length > 0 ? (
+                          `${t.actions.length} selected`
+                        ) : (
+                          <span className="text-muted-foreground">Actions</span>
+                        )}
+                        <CaretDownIcon className="size-4 shrink-0 text-muted-foreground" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
+                      {EVENT_ACTIONS[t.event].map((a) => (
+                        <DropdownMenuCheckboxItem
+                          key={a}
+                          checked={t.actions.includes(a)}
+                          onCheckedChange={(checked) =>
+                            setTrigger(i, {
+                              actions: checked ? [...t.actions, a] : t.actions.filter((x) => x !== a),
+                            })
+                          }
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          {a}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
+                {triggers.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Remove trigger"
+                    onClick={() => removeTrigger(i)}
+                  >
+                    <XIcon className="size-4 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="size-fit self-start gap-1.5 px-2 text-muted-foreground"
+              onClick={addTrigger}
+            >
+              <PlusIcon className="size-4" /> Add trigger
+            </Button>
           </div>
 
           {error && <p className="text-xs text-destructive">{error}</p>}
