@@ -71,7 +71,7 @@ export function HealthBanner({ state, refresh }: { state: State; refresh: () => 
                 <DialogTitle>{META[fixing].title}</DialogTitle>
                 <DialogDescription>{META[fixing].description}</DialogDescription>
               </DialogHeader>
-              <div className="flex flex-col gap-6">
+              <div className="flex min-w-0 flex-col gap-6">
                 <FixPanel domain={fixing} state={state} refresh={refresh} />
               </div>
             </>
