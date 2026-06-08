@@ -13,9 +13,27 @@ export default function App() {
   const [createNew, setCreateNew] = useState(0)
 
   useEffect(() => {
-    void getBot()
-      .then((r) => setBot(r.bot))
-      .catch(() => {})
+    if (!state?.appSlug) {
+      setBot(null)
+      return
+    }
+    let alive = true
+    let timer: ReturnType<typeof setInterval> | undefined
+    const load = () => {
+      void getBot()
+        .then((r) => {
+          if (!alive) return
+          setBot(r.bot)
+          if (r.bot && timer) clearInterval(timer)
+        })
+        .catch(() => {})
+    }
+    load()
+    timer = setInterval(load, 5000)
+    return () => {
+      alive = false
+      if (timer) clearInterval(timer)
+    }
   }, [state?.appSlug])
 
   useEffect(() => {
