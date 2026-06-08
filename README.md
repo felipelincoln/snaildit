@@ -17,7 +17,7 @@ Point it at your repositories, describe what you want in plain English, and it a
 
 It acts through the `gh` CLI as a GitHub App **you own**, so it can do anything you grant it — and nothing you don't.
 
-Every run is your own [Codex](https://developers.openai.com/codex/cli/) CLI invocation on **your subscription**. No API keys, no per-token billing, no third-party servers. Your machine, your subscription, your bot.
+Every run is your own [Codex](https://developers.openai.com/codex/cli/) CLI invocation on **your subscription**. No API keys, no per-token billing, no app backend to host. Your machine, your subscription, your bot.
 
 ## Quickstart
 
@@ -38,5 +38,6 @@ This opens a local dashboard that walks you through three steps: connect Codex, 
 - Node.js >= 24.15
 - A [Codex](https://developers.openai.com/codex/cli/) subscription (logged in via the dashboard)
 - The [`gh`](https://cli.github.com/) CLI on your PATH — the bot runs it to act on GitHub. It injects its own short-lived token, so you don't need to authenticate `gh` yourself.
+- macOS or Linux (Windows isn't supported yet)
 
 (`cloudflared` is downloaded automatically on first run — nothing to install.)

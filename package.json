@@ -36,7 +36,7 @@
     "build": "rm -rf dist && vite build && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json",
     "format": "biome format --write .",
-    "lint": "biome lint --write .",
+    "lint": "biome lint .",
     "check": "biome check .",
     "start": "node dist/cli.js start",
     "prepublishOnly": "npm run build"
