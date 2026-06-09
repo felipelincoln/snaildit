@@ -1,4 +1,5 @@
 import { paths, readJsonFile, writeJsonFileAtomic } from './config.js'
+import { log } from './log.js'
 
 export interface Trigger {
   event: string
@@ -102,8 +103,34 @@ export function validateEffort(effort: string | null | undefined): string | unde
   return value
 }
 
+function isAutomationShape(value: unknown): value is Automation {
+  if (value === null || typeof value !== 'object') return false
+  const a = value as Record<string, unknown>
+  return (
+    typeof a.id === 'string' &&
+    typeof a.trigger_repo_id === 'number' &&
+    Array.isArray(a.triggers) &&
+    a.triggers.length > 0 &&
+    a.triggers.every(
+      (t) =>
+        t !== null &&
+        typeof t === 'object' &&
+        typeof (t as Trigger).event === 'string' &&
+        Array.isArray((t as Trigger).actions),
+    )
+  )
+}
+
 function load(): Automation[] {
-  return readJsonFile<Automation[]>(paths.automations, [])
+  const raw = readJsonFile<unknown>(paths.automations, [])
+  if (!Array.isArray(raw)) {
+    log('automations', 'automations.json is not an array — ignoring')
+    return []
+  }
+  const valid = raw.filter(isAutomationShape)
+  const dropped = raw.length - valid.length
+  if (dropped > 0) log('automations', `ignored ${dropped} invalid/legacy automation entr${dropped === 1 ? 'y' : 'ies'}`)
+  return valid
 }
 
 function persist(list: Automation[]): void {
