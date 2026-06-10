@@ -65,13 +65,29 @@ export function spawnJsonl(
     child.stderr.on('data', (chunk: string) => {
       stderr = (stderr + chunk).slice(-MAX_STDERR)
     })
-    child.on('error', (err) => {
-      if (opts.signal.aborted) resolve({ exitCode: null, stderr })
-      else reject(err)
-    })
-    child.on('close', (code) => {
+    let settled = false
+    const settle = (exitCode: number | null): void => {
+      if (settled) return
+      settled = true
       onLine(stdout)
-      resolve({ exitCode: code, stderr })
+      resolve({ exitCode, stderr })
+    }
+    child.on('error', (err) => {
+      // On abort Node SIGKILLs the child and emits 'error' at once. Don't
+      // resolve yet: wait for the real 'exit' so the caller's workdir cleanup
+      // never runs while the direct child is still alive.
+      if (opts.signal.aborted) return
+      if (!settled) {
+        settled = true
+        reject(err)
+      }
     })
+    child.on('exit', (code) => {
+      // Direct child is gone. A normal run still prefers 'close' so all stdout
+      // is flushed first; on abort we settle here, so a grandchild that
+      // inherited the stdout pipe can't defer the result (and the rm) forever.
+      if (opts.signal.aborted) settle(code)
+    })
+    child.on('close', (code) => settle(code))
   })
 }
