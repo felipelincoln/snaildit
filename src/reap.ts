@@ -11,18 +11,23 @@ function commandMatches(pid: number, needle: string): boolean {
   }
 }
 
-// SIGKILLs a process left running after a crash, but only when it is still alive
-// AND its command identifies it as the program we expect — so PID reuse can't
-// make us kill something innocent. pid <= 0 is refused, or process.kill would
-// signal a whole process group. Returns true only if we actually killed one.
-export function reapOrphan(pid: number, needle: string): boolean {
+// True when `pid` is a live process whose command identifies it as `needle`.
+// pid <= 0 is refused, or process.kill would address a whole process group.
+export function processMatches(pid: number, needle: string): boolean {
   if (!Number.isInteger(pid) || pid <= 0) return false
   try {
     process.kill(pid, 0)
   } catch {
-    return false // already gone — the normal clean-shutdown / dead case
+    return false // not alive
   }
-  if (!commandMatches(pid, needle)) return false
+  return commandMatches(pid, needle)
+}
+
+// SIGKILLs a process left running after a crash, but only when it is still alive
+// AND its command identifies it as the program we expect — so PID reuse can't
+// make us kill something innocent. Returns true only if we actually killed one.
+export function reapOrphan(pid: number, needle: string): boolean {
+  if (!processMatches(pid, needle)) return false
   try {
     process.kill(pid, 'SIGKILL')
     return true

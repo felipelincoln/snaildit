@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process'
 import { ensureConfigDir } from './config.js'
 import { startIngestion } from './live.js'
+import { acquireInstanceLock, releaseInstanceLock } from './lock.js'
 import { log } from './log.js'
 import { startServer } from './server.js'
 
@@ -23,12 +24,16 @@ const command = process.argv[2]
 if (command === 'start') {
   try {
     ensureConfigDir()
+    acquireInstanceLock()
     const url = await startServer()
     log('server', `running at ${url}`)
     openBrowser(url)
     const stopIngestion = await startIngestion()
     const shutdown = () => {
-      void stopIngestion().finally(() => process.exit(0))
+      void stopIngestion().finally(() => {
+        releaseInstanceLock()
+        process.exit(0)
+      })
     }
     process.on('SIGINT', shutdown)
     process.on('SIGTERM', shutdown)

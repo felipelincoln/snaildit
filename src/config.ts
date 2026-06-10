@@ -14,6 +14,7 @@ export const paths = {
   pem: join(CONFIG_DIR, 'private-key.pem'),
   db: join(CONFIG_DIR, 'github-ai-bot.db'),
   tunnelPid: join(CONFIG_DIR, 'cloudflared.pid'),
+  lock: join(CONFIG_DIR, 'instance.lock'),
 } as const
 
 export interface GithubApp {
