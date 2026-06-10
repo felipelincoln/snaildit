@@ -39,6 +39,10 @@ function slugify(s: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+// Radix Select forbids an empty value, so the "engine default" choice (clearing
+// the effort) needs a sentinel that maps back to '' on save.
+const NO_EFFORT = '__default__'
+
 export function AutomationDialog({
   repos,
   efforts,
@@ -71,6 +75,10 @@ export function AutomationDialog({
   const [prompt, setPrompt] = useState(automation?.prompt ?? '')
   const defaultEffort = efforts.includes('medium') ? 'medium' : (efforts[0] ?? '')
   const [effort, setEffort] = useState(automation ? (automation.effort ?? '') : defaultEffort)
+  // Keep a stored effort visible even if it's no longer in the engine's list,
+  // so editing an automation doesn't silently drop it.
+  const effortOptions =
+    automation?.effort && !efforts.includes(automation.effort) ? [...efforts, automation.effort] : efforts
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -231,14 +239,15 @@ export function AutomationDialog({
                 </SelectContent>
               </Select>
 
-              {efforts.length > 0 && (
-                <Select value={effort} onValueChange={setEffort}>
+              {effortOptions.length > 0 && (
+                <Select value={effort || NO_EFFORT} onValueChange={(v) => setEffort(v === NO_EFFORT ? '' : v)}>
                   <SelectTrigger size="sm" aria-label="Effort" className="shrink-0 gap-2">
                     <GaugeIcon className="size-4 shrink-0 text-muted-foreground" />
                     <SelectValue placeholder="Effort" />
                   </SelectTrigger>
                   <SelectContent>
-                    {efforts.map((ef) => (
+                    <SelectItem value={NO_EFFORT}>Default</SelectItem>
+                    {effortOptions.map((ef) => (
                       <SelectItem key={ef} value={ef}>
                         {ef}
                       </SelectItem>

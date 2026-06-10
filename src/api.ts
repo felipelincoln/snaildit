@@ -14,9 +14,8 @@ import {
   writeAppCredentials,
 } from './github.js'
 import { dailyRunCounts, deleteJobsFor, listQueuedJobs, listRecentRuns } from './jobs.js'
-import { type WebhookStatus, notifyAppConfigured, retryWebhook, webhookState } from './live.js'
+import { notifyAppConfigured } from './live.js'
 import { log } from './log.js'
-import { ghAvailable } from './preflight.js'
 import {
   type Automation,
   type AutomationPatch,
@@ -39,8 +38,6 @@ interface State {
   domains: Record<DomainId, { done: boolean }>
   appSlug: string | null
   engine: string | null
-  webhook: { status: WebhookStatus; url: string | null; detail: string | null }
-  gh: boolean
 }
 
 let lastDone: Record<DomainId, boolean> | null = null
@@ -100,8 +97,6 @@ async function computeState(): Promise<State> {
     domains,
     appSlug: config.github?.slug ?? null,
     engine: isEngineId(config.engine) ? config.engine : null,
-    webhook: webhookState(),
-    gh: await ghAvailable(),
   }
 }
 
@@ -194,12 +189,6 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, url: 
   try {
     if (pathname === '/api/state' && method === 'GET') {
       json(res, 200, await currentState())
-      return true
-    }
-    if (pathname === '/api/webhook/retry' && method === 'POST') {
-      retryWebhook()
-      log('webhook', 'retry requested from dashboard')
-      json(res, 200, { ok: true })
       return true
     }
     if (pathname === '/api/runs' && method === 'GET') {

@@ -9,7 +9,7 @@ import { startWorkerPool, stopWorkerPool } from './pool.js'
 import { type Tunnel, killTunnels, reapOrphanTunnel, startTunnel } from './tunnel.js'
 import { type WebhookServer, startWebhookServer } from './webhook.js'
 
-export type WebhookStatus = 'off' | 'starting' | 'live' | 'retrying' | 'failed'
+type WebhookStatus = 'off' | 'starting' | 'live' | 'retrying' | 'failed'
 
 let server: WebhookServer | null = null
 let tunnel: Tunnel | null = null
@@ -19,10 +19,6 @@ let stopped = false
 let status: WebhookStatus = 'off'
 let publicUrl: string | null = null
 let detail: string | null = null
-
-export function webhookState(): { status: WebhookStatus; url: string | null; detail: string | null } {
-  return { status, url: publicUrl, detail }
-}
 
 // Errors that retrying can never fix; everything else is treated as transient.
 const PERMANENT_SETUP_RE = /unsupported platform|checksum mismatch/i
@@ -154,8 +150,4 @@ function ensureLiveObserved(force: boolean): void {
 
 export function notifyAppConfigured(): void {
   ensureLiveObserved(false)
-}
-
-export function retryWebhook(): void {
-  ensureLiveObserved(true)
 }
