@@ -6,7 +6,7 @@ import { loadConfig } from './config.js'
 import type { RunContext, RunResult, Runtime } from './runtime.js'
 import { CODEX_HOME, CODEX_REPOS_BASE, CODEX_WORK_BASE, codexEngine } from './engines/codex.js'
 import { installationToken } from './github.js'
-import { getSession, setSession } from './jobs.js'
+import { getSession } from './jobs.js'
 import { log } from './log.js'
 import { spawnJsonl } from './run-stream.js'
 
@@ -165,10 +165,11 @@ export function codexRuntime(): Runtime {
           st.tokens = null
           res = await spawnJsonl(CODEX_BIN, buildArgv(automation, null), { cwd: dir, env, stdin: prompt, signal }, fold)
         }
-        if (st.sessionId && st.sessionId !== prior)
-          setSession(automation.id, ctx.repository_id, ctx.number, st.sessionId)
         const ok = res.exitCode === 0 && st.error == null
         const result = st.result ?? st.error ?? (res.exitCode !== 0 ? res.stderr.slice(-4000) : null)
+        // sessionId null (gone session, fresh run emitted no thread.started)
+        // tells the pool to clear the stored session so future runs stop
+        // re-paying the resume-fail-then-restart cost.
         return { ok, result, tokens: st.tokens, sessionId: st.sessionId }
       } finally {
         await rm(dir, { recursive: true, force: true })

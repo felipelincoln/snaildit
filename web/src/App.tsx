@@ -65,7 +65,7 @@ export default function App() {
           {state == null ? (
             <CircleNotchIcon className="mt-24 size-5 animate-spin text-muted-foreground" />
           ) : state.onboarded ? (
-            <Dashboard state={state} refresh={refresh} createNew={createNew} />
+            <Dashboard state={state} createNew={createNew} />
           ) : (
             <SetupWizard state={state} onAdvance={refresh} />
           )}

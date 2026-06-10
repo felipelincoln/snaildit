@@ -92,12 +92,12 @@ async function handleWebhook(req: IncomingMessage, res: ServerResponse, secret: 
     return
   }
   try {
-    const inserted = ingestDelivery(deliveryId, extracted, new Date().toISOString())
+    const { inserted, matched } = ingestDelivery(deliveryId, extracted, new Date().toISOString())
     log(
       'webhook',
-      `${extracted.event_type}.${extracted.action} ${extracted.repo}#${extracted.number} ${inserted ? 'stored' : 'dedup'} ${deliveryId}`,
+      `${extracted.event_type}.${extracted.action} ${extracted.repo}#${extracted.number} ${inserted ? 'stored' : 'dedup'} matched=${matched} ${deliveryId}`,
     )
-    if (inserted) wakeWorkers()
+    if (matched > 0) wakeWorkers()
     send(res, 200, inserted ? 'ok\n' : 'duplicate\n')
   } catch (err) {
     log('webhook', `ingest error: ${(err as Error).message}`)
@@ -115,7 +115,13 @@ export function startWebhookServer(secret: string): Promise<WebhookServer> {
     const method = req.method ?? 'GET'
     const url = req.url ?? '/'
     if (method === 'POST' && url === '/webhook') {
-      void handleWebhook(req, res, secret)
+      // Top-level catch: a throw outside handleWebhook's inner guards must not
+      // become an unhandled rejection — answer 500 and keep serving.
+      handleWebhook(req, res, secret).catch((err) => {
+        log('webhook', `handler error: ${(err as Error).message}`)
+        if (!res.headersSent) send(res, 500, 'error\n')
+        else if (!res.writableEnded) res.end()
+      })
       return
     }
     if ((method === 'GET' || method === 'HEAD') && url === '/') {

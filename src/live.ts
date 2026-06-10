@@ -2,7 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { ensureCloudflared } from './cloudflared.js'
 import { loadConfig } from './config.js'
 import { codexRuntime } from './runtime.codex.js'
-import { patchAppWebhook } from './github.js'
+import { getAppWebhookUrl, patchAppWebhook } from './github.js'
 import { log } from './log.js'
 import { startWorkerPool, stopWorkerPool } from './pool.js'
 import { type Tunnel, killTunnels, startTunnel } from './tunnel.js'
@@ -23,8 +23,11 @@ export function webhookState(): { status: WebhookStatus; url: string | null; det
   return { status, url: publicUrl, detail }
 }
 
+// Errors that retrying can never fix; everything else is treated as transient.
+const PERMANENT_SETUP_RE = /unsupported platform|checksum mismatch/i
+
 async function reconnect(myEpoch: number, secret: string, localUrl: string): Promise<void> {
-  for (let attempt = 0; epoch === myEpoch && !stopped && attempt < 9; attempt++) {
+  for (let attempt = 0; epoch === myEpoch && !stopped; attempt++) {
     status = attempt === 0 ? 'starting' : 'retrying'
     tunnel?.close()
     tunnel = null
@@ -35,8 +38,9 @@ async function reconnect(myEpoch: number, secret: string, localUrl: string): Pro
         next.close()
         return
       }
+      const hookUrl = `${next.url}/webhook`
       try {
-        await patchAppWebhook(`${next.url}/webhook`, secret)
+        await patchAppWebhook(hookUrl, secret)
       } catch (err) {
         next.close()
         throw err
@@ -46,7 +50,7 @@ async function reconnect(myEpoch: number, secret: string, localUrl: string): Pro
         return
       }
       tunnel = next
-      publicUrl = `${next.url}/webhook`
+      publicUrl = hookUrl
       status = 'live'
       detail = null
       log('webhook', `live at ${publicUrl}`)
@@ -55,19 +59,33 @@ async function reconnect(myEpoch: number, secret: string, localUrl: string): Pro
         log('tunnel', 'exited — reconnecting')
         void reconnect(myEpoch, secret, localUrl)
       })
+      // A PATCH from a torn-down epoch can land at GitHub after ours; verify
+      // and re-assert so the App never points at a dead tunnel while 'live'.
+      try {
+        const remote = await getAppWebhookUrl()
+        if (epoch === myEpoch && !stopped && remote !== null && remote !== hookUrl) {
+          await patchAppWebhook(hookUrl, secret)
+          log('webhook', `hook config was stale — re-patched to ${hookUrl}`)
+        }
+      } catch {}
       return
     } catch (err) {
       detail = (err as Error).message
       log('webhook', `setup failed: ${detail}`)
+      if (PERMANENT_SETUP_RE.test(detail)) {
+        if (epoch === myEpoch && !stopped) {
+          status = 'failed'
+          log('tunnel', `unavailable: ${detail}`)
+        }
+        return
+      }
       if (epoch === myEpoch && !stopped) {
         status = 'retrying'
-        await sleep(Math.min(2000 * 2 ** attempt, 30_000))
+        // Transient trouble must never strand unattended ingestion: ramp up
+        // exponentially, then keep retrying every 60s indefinitely.
+        await sleep(Math.min(2000 * 2 ** attempt, 60_000))
       }
     }
-  }
-  if (epoch === myEpoch && !stopped) {
-    status = 'failed'
-    log('tunnel', `unavailable — retry the webhook from the dashboard${detail ? ` (${detail})` : ''}`)
   }
 }
 
@@ -118,10 +136,20 @@ export async function startIngestion(): Promise<() => Promise<void>> {
   }
 }
 
+// Fire-and-forget entry points must observe the chain's rejection, or a
+// listen failure becomes an unhandled rejection with status stuck 'starting'.
+function ensureLiveObserved(force: boolean): void {
+  ensureLive(force).catch((err) => {
+    status = 'failed'
+    detail = (err as Error).message
+    log('webhook', `setup failed: ${detail}`)
+  })
+}
+
 export function notifyAppConfigured(): void {
-  void ensureLive()
+  ensureLiveObserved(false)
 }
 
 export function retryWebhook(): void {
-  void ensureLive(true)
+  ensureLiveObserved(true)
 }

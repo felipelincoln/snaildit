@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { CircleNotchIcon, PencilSimpleIcon, TrashIcon, WarningIcon } from '@phosphor-icons/react'
 import { Activity } from '@/components/activity'
 import { AutomationDialog } from '@/components/automation-dialog'
-import { HealthBanner } from '@/components/health-banner'
 import { RecentRuns } from '@/components/recent-runs'
 import { TriggerIcon } from '@/components/trigger-icon'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -37,11 +36,13 @@ function AutomationRow({
   connected,
   onEdit,
   onChanged,
+  onError,
 }: {
   automation: Automation
   connected: boolean
   onEdit: () => void
   onChanged: () => void
+  onError: (message: string | null) => void
 }) {
   const [busy, setBusy] = useState(false)
   const n = automation.triggers.length
@@ -49,9 +50,12 @@ function AutomationRow({
     setBusy(true)
     try {
       await updateAutomation(automation.id, { enabled })
-      onChanged()
+      onError(null)
+    } catch (err) {
+      onError((err as Error).message)
     } finally {
       setBusy(false)
+      onChanged()
     }
   }
   return (
@@ -92,7 +96,14 @@ function AutomationRow({
           </Button>
           <DeleteAutomation
             name={automation.name}
-            onConfirm={() => deleteAutomation(automation.id).then(onChanged, onChanged)}
+            onConfirm={() =>
+              deleteAutomation(automation.id)
+                .then(
+                  () => onError(null),
+                  (err: unknown) => onError((err as Error).message),
+                )
+                .finally(onChanged)
+            }
           />
         </div>
       </div>
@@ -130,20 +141,13 @@ function DeleteAutomation({ name, onConfirm }: { name: string; onConfirm: () => 
   )
 }
 
-export function Dashboard({
-  state,
-  refresh,
-  createNew,
-}: {
-  state: State
-  refresh: () => Promise<void>
-  createNew: number
-}) {
+export function Dashboard({ state, createNew }: { state: State; createNew: number }) {
   const [automations, setAutomations] = useState<Automation[] | null>(null)
   const [repos, setRepos] = useState<Repo[] | null>(null)
   const [efforts, setEfforts] = useState<string[]>([])
   const [form, setForm] = useState<Automation | 'new' | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const load = useCallback(() => {
     void getAutomations()
@@ -194,8 +198,15 @@ export function Dashboard({
 
   return (
     <div className="w-full max-w-3xl">
-      <HealthBanner state={state} refresh={refresh} />
       <Activity />
+
+      {actionError && (
+        <Alert variant="destructive" className="mb-4">
+          <WarningIcon />
+          <AlertTitle>Action failed</AlertTitle>
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      )}
 
       {automations.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -209,6 +220,7 @@ export function Dashboard({
                 connected={repos === null || repos.some((r) => r.id === a.trigger_repo_id)}
                 onEdit={() => setForm(a)}
                 onChanged={load}
+                onError={setActionError}
               />
             ))}
           </div>

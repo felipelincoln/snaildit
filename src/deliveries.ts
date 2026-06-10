@@ -75,6 +75,7 @@ function init(handle: DatabaseSync): void {
     )
   `)
   handle.exec('CREATE INDEX IF NOT EXISTS idx_runs_work_item ON runs (automation_id, repository_id, number, id)')
+  handle.exec('CREATE INDEX IF NOT EXISTS idx_runs_started ON runs (started_at)')
   // Additive migration for databases created before the `event` column existed.
   const runCols = handle.prepare('PRAGMA table_info(runs)').all() as Array<{ name: string }>
   if (!runCols.some((c) => c.name === 'event')) handle.exec('ALTER TABLE runs ADD COLUMN event TEXT')
@@ -125,6 +126,17 @@ function quarantine(): void {
   else log('storage', `corrupt database reset failed: could not rename ${paths.db}`)
 }
 
+// Corruption surfacing after open would otherwise leave a permanently broken
+// cached handle: drop it so the next openDb() runs the quarantine/recreate path.
+export function resetDbOnCorruption(err: unknown): void {
+  if (!db || !isCorruption(err)) return
+  try {
+    db.close()
+  } catch {}
+  db = null
+  log('storage', `database corruption detected: ${(err as Error).message} — handle reset, will quarantine on reopen`)
+}
+
 export function openDb(): DatabaseSync {
   if (db) return db
   ensureConfigDir()
@@ -165,7 +177,12 @@ export function matchingDeliveries(repositoryId: number, number: number, trigger
   return rows.filter((d) => triggers.some((t) => t.event === d.event_type && t.actions.includes(d.action)))
 }
 
-export function ingestDelivery(deliveryId: string, e: Extracted, receivedAt: string): boolean {
+export interface IngestResult {
+  inserted: boolean
+  matched: number
+}
+
+export function ingestDelivery(deliveryId: string, e: Extracted, receivedAt: string): IngestResult {
   const handle = openDb()
   handle.exec('BEGIN IMMEDIATE')
   try {
@@ -189,14 +206,18 @@ export function ingestDelivery(deliveryId: string, e: Extracted, receivedAt: str
            WHERE excluded.last_event_at >= work_items.last_event_at`,
         )
         .run(e.repository_id, e.number, e.repo, e.type, receivedAt)
-      enqueueJobs(handle, e, receivedAt)
     }
+    // Enqueue even for duplicates: the jobs upsert is idempotent, and this is
+    // what makes GitHub's "Redeliver" button requeue an already-stored delivery
+    // (e.g. one that matched nothing because the automation didn't exist yet).
+    const matched = enqueueJobs(handle, e, receivedAt)
     handle.exec('COMMIT')
-    return inserted
+    return { inserted, matched }
   } catch (err) {
     try {
       handle.exec('ROLLBACK')
     } catch {}
+    resetDbOnCorruption(err)
     throw err
   }
 }

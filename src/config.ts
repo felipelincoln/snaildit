@@ -79,8 +79,51 @@ export function writeJsonFileAtomic(file: string, value: unknown, mode = 0o600):
   writeFileAtomic(file, `${JSON.stringify(value, null, 2)}\n`, mode)
 }
 
+const configWarned = new Set<string>()
+
+function warnConfigOnce(key: string, msg: string): void {
+  if (configWarned.has(key)) return
+  configWarned.add(key)
+  log('config', msg)
+}
+
 export function loadConfig(): Config {
-  return readJsonFile<Config>(paths.config, {})
+  const raw = readJsonFile<unknown>(paths.config, {})
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    warnConfigOnce('root', 'config.json is not an object — ignoring it')
+    return {}
+  }
+  // Drop malformed known fields so a hand-edited file can't crash consumers
+  // (a non-object `github` would feed undefined into createHmac on the first
+  // delivery). Unknown keys pass through so saves never destroy them.
+  const config = raw as Config
+  if (config.onboardedAt !== undefined && typeof config.onboardedAt !== 'string') {
+    warnConfigOnce('onboardedAt', 'config.json "onboardedAt" is not a string — ignoring it')
+    config.onboardedAt = undefined
+  }
+  if (config.engine !== undefined && typeof config.engine !== 'string') {
+    warnConfigOnce('engine', 'config.json "engine" is not a string — ignoring it')
+    config.engine = undefined
+  }
+  if (config.workers !== undefined && typeof config.workers !== 'number') {
+    warnConfigOnce('workers', 'config.json "workers" is not a number — ignoring it')
+    config.workers = undefined
+  }
+  if (config.github !== undefined) {
+    const g = config.github as unknown
+    const valid =
+      g !== null &&
+      typeof g === 'object' &&
+      !Array.isArray(g) &&
+      typeof (g as GithubApp).appId === 'string' &&
+      typeof (g as GithubApp).slug === 'string' &&
+      typeof (g as GithubApp).webhookSecret === 'string'
+    if (!valid) {
+      warnConfigOnce('github', 'config.json "github" entry is malformed — ignoring it')
+      config.github = undefined
+    }
+  }
+  return config
 }
 
 export function saveConfig(config: Config): void {

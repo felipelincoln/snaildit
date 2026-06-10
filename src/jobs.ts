@@ -148,10 +148,21 @@ export function getSession(automationId: string, repositoryId: number, number: n
   return row?.session_id ?? null
 }
 
-export function setSession(automationId: string, repositoryId: number, number: number, sessionId: string): void {
+// Lease-token CAS like ack/fail, so a stale worker whose lease was reclaimed
+// can't clobber the session recorded by the re-leased run. NULL clears a
+// session the engine found dead.
+export function setSession(job: LeasedJob, sessionId: string | null): void {
   openDb()
-    .prepare('UPDATE jobs SET session_id = ? WHERE automation_id = ? AND repository_id = ? AND number = ?')
-    .run(sessionId, automationId, repositoryId, number)
+    .prepare(
+      `UPDATE jobs SET session_id = ?
+        WHERE automation_id = ? AND repository_id = ? AND number = ? AND status = 'leased' AND lease_token = ?`,
+    )
+    .run(sessionId, job.automation_id, job.repository_id, job.number, job.lease_token)
+}
+
+export function deleteJobsFor(automationId: string): number {
+  const result = openDb().prepare('DELETE FROM jobs WHERE automation_id = ?').run(automationId)
+  return Number(result.changes)
 }
 
 export function startRun(job: LeasedJob, action: string | null, event: string | null, effort: string | null): number {
@@ -217,7 +228,13 @@ export interface DayActivity {
   tokens: number
 }
 
-export function dailyRunCounts(since: string): DayActivity[] {
+export function dailyRunCounts(days: number): DayActivity[] {
+  // Compute the cutoff (local midnight `days` ago) in JS and compare raw
+  // started_at strings, so the polled query hits idx_runs_started instead of
+  // full-scanning runs through date(started_at, 'localtime') on every row.
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+  cutoff.setHours(0, 0, 0, 0)
   return openDb()
     .prepare(
       `SELECT date(started_at, 'localtime') AS day,
@@ -226,11 +243,11 @@ export function dailyRunCounts(since: string): DayActivity[] {
               SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
               COALESCE(SUM(tokens), 0) AS tokens
          FROM runs
-        WHERE date(started_at, 'localtime') >= date('now', ?, 'localtime')
+        WHERE started_at >= ?
         GROUP BY day
         ORDER BY day`,
     )
-    .all(since) as unknown as DayActivity[]
+    .all(cutoff.toISOString()) as unknown as DayActivity[]
 }
 
 export interface QueuedJob {

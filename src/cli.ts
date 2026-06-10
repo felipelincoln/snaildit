@@ -12,6 +12,13 @@ function openBrowser(url: string): void {
   child.unref()
 }
 
+// Backstop: a missed .catch anywhere must degrade to a log line, not let
+// Node's default policy kill the daemon (webhook listener and all).
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? (reason.stack ?? reason.message) : String(reason)
+  log('process', `unhandled rejection: ${msg}`)
+})
+
 const command = process.argv[2]
 if (command === 'start') {
   try {

@@ -13,7 +13,7 @@ import {
   installationRepos,
   writeAppCredentials,
 } from './github.js'
-import { dailyRunCounts, listQueuedJobs, listRecentRuns } from './jobs.js'
+import { dailyRunCounts, deleteJobsFor, listQueuedJobs, listRecentRuns } from './jobs.js'
 import { type WebhookStatus, notifyAppConfigured, retryWebhook, webhookState } from './live.js'
 import { log } from './log.js'
 import { ghAvailable } from './preflight.js'
@@ -146,6 +146,20 @@ async function readJsonBody<T>(req: IncomingMessage, cap = 1_000_000): Promise<T
   return (raw ? JSON.parse(raw) : {}) as T
 }
 
+const MAX_AVATAR_BYTES = 2_000_000
+
+// The avatar URL comes from GitHub's own API, but pin the destination anyway
+// so this fetch-and-pipe proxy can never be walked off-host.
+function avatarAllowed(url: string): boolean {
+  if (!url) return false
+  try {
+    const u = new URL(url)
+    return u.protocol === 'https:' && u.hostname.endsWith('.githubusercontent.com')
+  } catch {
+    return false
+  }
+}
+
 let pending: { state: string; name: string } | null = null
 
 function manifestPayload(req: IncomingMessage, isPublic: boolean) {
@@ -207,7 +221,7 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, url: 
       return true
     }
     if (pathname === '/api/activity' && method === 'GET') {
-      json(res, 200, { days: dailyRunCounts('-365 days') })
+      json(res, 200, { days: dailyRunCounts(365) })
       return true
     }
     if (pathname === '/api/bot' && method === 'GET') {
@@ -229,16 +243,21 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, url: 
       if (config.github && !(await appAuthDead())) {
         try {
           const { avatar } = await appProfile()
-          if (avatar) {
-            const upstream = await fetch(avatar, { signal: AbortSignal.timeout(10_000) })
-            if (upstream.ok) {
+          if (avatarAllowed(avatar)) {
+            const upstream = await fetch(avatar, { signal: AbortSignal.timeout(10_000), redirect: 'error' })
+            const type = upstream.headers.get('content-type') ?? ''
+            const length = Number(upstream.headers.get('content-length') ?? '0')
+            if (upstream.ok && type.startsWith('image/') && length <= MAX_AVATAR_BYTES) {
               const body = Buffer.from(await upstream.arrayBuffer())
-              res.writeHead(200, {
-                'content-type': upstream.headers.get('content-type') ?? 'image/png',
-                'cache-control': 'no-cache',
-              })
-              res.end(body)
-              return true
+              if (body.length <= MAX_AVATAR_BYTES) {
+                res.writeHead(200, {
+                  'content-type': type,
+                  'cache-control': 'no-cache',
+                  'x-content-type-options': 'nosniff',
+                })
+                res.end(body)
+                return true
+              }
             }
           }
         } catch {}
@@ -349,6 +368,9 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, url: 
       }
       if (method === 'DELETE') {
         if (!deleteAutomation(id)) throw new HttpError(404, 'automation not found')
+        // Drop queue state too, or a recreated automation with the same id
+        // would inherit the old jobs — including a stale Codex session.
+        deleteJobsFor(id)
         log('automation', `deleted: ${id}`)
         json(res, 200, { ok: true })
         return true

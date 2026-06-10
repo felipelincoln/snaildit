@@ -31,7 +31,7 @@ npm run build
 npm start
 ```
 
-This opens a local dashboard that walks you through three steps: connect Codex, create a GitHub App you own, and choose which repositories it can touch. After that it runs your automations from your machine.
+This opens a local dashboard that walks you through three steps: create a GitHub App you own, choose which repositories it can touch, and connect Codex. After that it runs your automations from your machine.
 
 ## Requirements
 

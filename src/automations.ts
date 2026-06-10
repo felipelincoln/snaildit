@@ -121,20 +121,34 @@ function isAutomationShape(value: unknown): value is Automation {
   )
 }
 
-function load(): Automation[] {
+function loadRaw(): unknown[] {
   const raw = readJsonFile<unknown>(paths.automations, [])
   if (!Array.isArray(raw)) {
     log('automations', 'automations.json is not an array — ignoring')
     return []
   }
+  return raw
+}
+
+function load(): Automation[] {
+  const raw = loadRaw()
   const valid = raw.filter(isAutomationShape)
   const dropped = raw.length - valid.length
   if (dropped > 0) log('automations', `ignored ${dropped} invalid/legacy automation entr${dropped === 1 ? 'y' : 'ies'}`)
   return valid
 }
 
-function persist(list: Automation[]): void {
+// Mutations operate on the raw array and touch only the targeted entry, so
+// entries this version doesn't recognize (future schema, hand edits) survive
+// saves instead of being silently destroyed by the shape filter above.
+function persist(list: unknown[]): void {
   writeJsonFileAtomic(paths.automations, list)
+}
+
+function entryId(value: unknown): string | null {
+  if (value === null || typeof value !== 'object') return null
+  const id = (value as Record<string, unknown>).id
+  return typeof id === 'string' ? id : null
 }
 
 export function listAutomations(): Automation[] {
@@ -150,8 +164,8 @@ export function createAutomation(input: NewAutomation): Automation {
   const name = validateText(input.name, 'name')
   const prompt = validateText(input.prompt, 'prompt')
 
-  const list = load()
-  if (list.some((a) => a.id === id)) throw new DuplicateAutomationError(id)
+  const raw = loadRaw()
+  if (raw.some((e) => entryId(e) === id)) throw new DuplicateAutomationError(id)
 
   const now = new Date().toISOString()
   const automation: Automation = {
@@ -166,8 +180,8 @@ export function createAutomation(input: NewAutomation): Automation {
     created_at: now,
     updated_at: now,
   }
-  list.push(automation)
-  persist(list)
+  raw.push(automation)
+  persist(raw)
   return automation
 }
 
@@ -185,11 +199,11 @@ type EditableField = (typeof EDITABLE)[number]
 export type AutomationPatch = Partial<Pick<Automation, EditableField>>
 
 export function updateAutomation(id: string, patch: AutomationPatch): Automation | null {
-  const list = load()
-  const index = list.findIndex((a) => a.id === id)
+  const raw = loadRaw()
+  const index = raw.findIndex((e) => isAutomationShape(e) && e.id === id)
   if (index === -1) return null
 
-  const current = list[index]
+  const current = raw[index] as Automation
   const next: Automation = { ...current }
 
   for (const key of EDITABLE) {
@@ -222,15 +236,15 @@ export function updateAutomation(id: string, patch: AutomationPatch): Automation
   }
 
   next.updated_at = new Date().toISOString()
-  list[index] = next
-  persist(list)
+  raw[index] = next
+  persist(raw)
   return next
 }
 
 export function deleteAutomation(id: string): boolean {
-  const list = load()
-  const next = list.filter((a) => a.id !== id)
-  if (next.length === list.length) return false
+  const raw = loadRaw()
+  const next = raw.filter((e) => !(isAutomationShape(e) && e.id === id))
+  if (next.length === raw.length) return false
   persist(next)
   return true
 }

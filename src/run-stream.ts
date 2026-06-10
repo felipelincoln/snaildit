@@ -13,6 +13,7 @@ export interface SpawnResult {
 }
 
 const MAX_STDERR = 4000
+const MAX_LINE = 8 * 1024 * 1024
 
 export function spawnJsonl(
   command: string,
@@ -52,6 +53,9 @@ export function spawnJsonl(
         stdout = stdout.slice(nl + 1)
         nl = stdout.indexOf('\n')
       }
+      // A runaway process writing without newlines must not grow memory
+      // forever; the dropped line's tail fails JSON.parse and is ignored.
+      if (stdout.length > MAX_LINE) stdout = ''
     })
     child.stderr.setEncoding('utf8')
     child.stderr.on('data', (chunk: string) => {

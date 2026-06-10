@@ -1,15 +1,11 @@
 export type DomainId = 'app' | 'repos' | 'engine'
 
-export type WebhookStatus = 'off' | 'starting' | 'live' | 'retrying' | 'failed'
-
 export interface State {
   onboarded: boolean
   step: DomainId | 'done'
   domains: Record<DomainId, { done: boolean }>
   appSlug: string | null
   engine: string | null
-  webhook: { status: WebhookStatus; url: string | null; detail: string | null }
-  gh: boolean
 }
 
 export interface Manifest {
@@ -122,21 +118,23 @@ export const EVENT_ACTIONS: Record<string, string[]> = {
 }
 export const EVENT_TYPES = Object.keys(EVENT_ACTIONS)
 
-async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(path)
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-  return (await res.json()) as T
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, init)
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string }
+  if (!res.ok) throw new Error(data.error ?? `${res.status} ${res.statusText}`)
+  return data
 }
 
-async function sendJson<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, {
+function getJson<T>(path: string): Promise<T> {
+  return request<T>(path)
+}
+
+function sendJson<T>(method: string, path: string, body?: unknown): Promise<T> {
+  return request<T>(path, {
     method,
     headers: body === undefined ? undefined : { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string }
-  if (!res.ok) throw new Error(data.error ?? `${res.status} ${res.statusText}`)
-  return data
 }
 
 export function getState(): Promise<State> {
@@ -153,10 +151,6 @@ export function getManifest(isPublic: boolean): Promise<Manifest> {
 
 export function getRepos(): Promise<{ repos: Repo[] }> {
   return getJson<{ repos: Repo[] }>('/api/repos')
-}
-
-export function retryWebhook(): Promise<{ ok: boolean }> {
-  return sendJson<{ ok: boolean }>('POST', '/api/webhook/retry', {})
 }
 
 export interface Run {

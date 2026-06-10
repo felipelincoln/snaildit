@@ -15,6 +15,8 @@ export interface RunResult {
   ok: boolean
   result: string | null
   tokens?: number | null
+  // string: persist as the resumable session; null: clear a session the
+  // engine found dead; undefined: leave the stored session untouched.
   sessionId?: string | null
 }
 

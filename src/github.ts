@@ -161,6 +161,21 @@ export async function installationToken(repoFullName: string, repositoryId: numb
   }
 }
 
+export async function getAppWebhookUrl(): Promise<string | null> {
+  const { token } = (await appOctokit().auth({ type: 'app' })) as { token: string }
+  const res = await fetch(`${GH_API}/app/hook/config`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'User-Agent': USER_AGENT,
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  })
+  if (!res.ok) return null
+  return ((await res.json()) as { url?: string }).url ?? null
+}
+
 export async function patchAppWebhook(url: string, secret: string): Promise<void> {
   const { token } = (await appOctokit().auth({ type: 'app' })) as { token: string }
   const res = await fetch(`${GH_API}/app/hook/config`, {
