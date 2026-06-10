@@ -147,6 +147,7 @@ export function Dashboard({ state, createNew }: { state: State; createNew: numbe
   const [efforts, setEfforts] = useState<string[]>([])
   const [form, setForm] = useState<Automation | 'new' | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
+  const [reposFailed, setReposFailed] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const load = useCallback(() => {
@@ -158,15 +159,22 @@ export function Dashboard({ state, createNew }: { state: State; createNew: numbe
       .catch(() => setLoadFailed(true))
   }, [])
 
+  const loadRepos = useCallback(() => {
+    void getRepos()
+      .then((r) => {
+        setRepos(r.repos)
+        setReposFailed(false)
+      })
+      .catch(() => setReposFailed(true))
+  }, [])
+
   useEffect(() => {
     load()
-    void getRepos()
-      .then((r) => setRepos(r.repos))
-      .catch(() => {})
+    loadRepos()
     void getEngines()
       .then((r) => setEfforts((r.engines.find((e) => e.configured) ?? r.engines[0])?.efforts ?? []))
       .catch(() => {})
-  }, [load, state.domains.repos.done, state.domains.engine.done])
+  }, [load, loadRepos, state.domains.repos.done, state.domains.engine.done])
 
   useEffect(() => {
     if (createNew > 0) setForm('new')
@@ -232,6 +240,8 @@ export function Dashboard({ state, createNew }: { state: State; createNew: numbe
       {form && (
         <AutomationDialog
           repos={repos ?? []}
+          reposFailed={reposFailed}
+          onRetryRepos={loadRepos}
           efforts={efforts}
           automation={form === 'new' ? undefined : form}
           onClose={() => setForm(null)}

@@ -1,5 +1,13 @@
 import { type FormEvent, useState } from 'react'
-import { CaretDownIcon, CircleNotchIcon, GaugeIcon, ListChecksIcon, PlusIcon, XIcon } from '@phosphor-icons/react'
+import {
+  CaretDownIcon,
+  CircleNotchIcon,
+  GaugeIcon,
+  ListChecksIcon,
+  PlusIcon,
+  WarningIcon,
+  XIcon,
+} from '@phosphor-icons/react'
 import { GithubIcon } from '@/components/github-icon'
 import { TriggerIcon } from '@/components/trigger-icon'
 import { Button } from '@/components/ui/button'
@@ -45,12 +53,16 @@ const NO_EFFORT = '__default__'
 
 export function AutomationDialog({
   repos,
+  reposFailed,
+  onRetryRepos,
   efforts,
   automation,
   onClose,
   onSaved,
 }: {
   repos: Repo[]
+  reposFailed?: boolean
+  onRetryRepos?: () => void
   efforts: string[]
   automation?: Automation
   onClose: () => void
@@ -225,19 +237,31 @@ export function AutomationDialog({
 
           <DialogFooter className="-mx-6 -mb-6 mt-1 items-center rounded-b-lg bg-black/20 px-6 py-4">
             <div className="mr-auto flex min-w-0 items-center gap-2">
-              <Select value={repoId} onValueChange={setRepoId}>
-                <SelectTrigger size="sm" aria-label="Repository" className="min-w-0 gap-2">
-                  <GithubIcon className="size-4 shrink-0 text-muted-foreground" />
-                  <SelectValue placeholder="Repository" />
-                </SelectTrigger>
-                <SelectContent>
-                  {repoOptions.map((r) => (
-                    <SelectItem key={r.id} value={String(r.id)}>
-                      {r.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {repoOptions.length > 0 ? (
+                <Select value={repoId} onValueChange={setRepoId}>
+                  <SelectTrigger size="sm" aria-label="Repository" className="min-w-0 gap-2">
+                    <GithubIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <SelectValue placeholder="Repository" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {repoOptions.map((r) => (
+                      <SelectItem key={r.id} value={String(r.id)}>
+                        {r.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : reposFailed ? (
+                <button
+                  type="button"
+                  onClick={() => onRetryRepos?.()}
+                  className="flex items-center gap-1.5 text-xs text-destructive hover:underline"
+                >
+                  <WarningIcon className="size-3.5 shrink-0" /> Couldn't load repositories — retry
+                </button>
+              ) : (
+                <span className="text-xs text-muted-foreground">No repositories connected</span>
+              )}
 
               {effortOptions.length > 0 && (
                 <Select value={effort || NO_EFFORT} onValueChange={(v) => setEffort(v === NO_EFFORT ? '' : v)}>
