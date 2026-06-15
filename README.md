@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="web/public/logo.png" alt="github-ai-bot" width="96" />
+  <img src="https://raw.githubusercontent.com/felipelincoln/github-ai-bot/main/web/public/logo.png" alt="github-ai-bot" width="96" />
 </p>
 
 <h1 align="center">github-ai-bot</h1>
@@ -21,14 +21,8 @@ Every run is your own [Codex](https://developers.openai.com/codex/cli/) CLI invo
 
 ## Quickstart
 
-Not on npm yet — run it from source:
-
 ```sh
-git clone https://github.com/felipelincoln/github-ai-bot
-cd github-ai-bot
-npm install
-npm run build
-npm start
+npx github-ai-bot start
 ```
 
 This opens a local dashboard that walks you through three steps: create a GitHub App you own, choose which repositories it can touch, and connect Codex. After that it runs your automations from your machine.
@@ -41,3 +35,15 @@ This opens a local dashboard that walks you through three steps: create a GitHub
 - macOS or Linux (Windows isn't supported yet)
 
 (`cloudflared` is downloaded automatically on first run — nothing to install.)
+
+## From source
+
+To develop, or run an unreleased build:
+
+```sh
+git clone https://github.com/felipelincoln/github-ai-bot
+cd github-ai-bot
+npm install
+npm run build
+npm start
+```
