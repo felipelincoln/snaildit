@@ -28,7 +28,5 @@ jobs:
           echo "$out"
           echo "$out" | grep -q 'dist/cli.js' || { echo "dist/cli.js missing from the package"; exit 1; }
           echo "$out" | grep -q 'dist/web/' || { echo "dist/web missing from the package"; exit 1; }
-      - name: Publish to npm (token bootstrap — first publish of this name)
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm (OIDC trusted publishing)
+        run: npm publish --access public
