@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # npm provenance
+  id-token: write # OIDC trusted publishing (no token; provenance is automatic)
 
 jobs:
   publish:
@@ -17,8 +17,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
-          cache: npm
           registry-url: 'https://registry.npmjs.org'
+      - run: npm install -g npm@latest # trusted publishing requires npm >= 11.5.1
       - run: npm ci
       - run: npm run build
       - name: Verify the packaged artifact
@@ -28,7 +28,5 @@ jobs:
           echo "$out"
           echo "$out" | grep -q 'dist/cli.js' || { echo "dist/cli.js missing from the package"; exit 1; }
           echo "$out" | grep -q 'dist/web/' || { echo "dist/web missing from the package"; exit 1; }
-      - name: Publish to npm
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm (OIDC trusted publishing)
+        run: npm publish --access public
