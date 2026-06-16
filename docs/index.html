@@ -21,7 +21,7 @@
     --green-deep:#116329;
     --green-tint:#dafbe1;
     --red:#cf222e;
-    --accent:#0969da;
+    --accent:#ea580c;
     --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     --mono:"JetBrains Mono",ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
   }
@@ -32,8 +32,8 @@
     font-family:var(--sans);
     color:var(--ink);
     background:
-      radial-gradient(1100px 520px at 50% -8%, #eef6ff 0%, rgba(238,246,255,0) 60%),
-      radial-gradient(900px 480px at 92% 6%, #eafaf0 0%, rgba(234,250,240,0) 55%),
+      radial-gradient(1100px 520px at 50% -8%, #ffefe2 0%, rgba(255,239,226,0) 60%),
+      radial-gradient(900px 480px at 92% 6%, #fff3e6 0%, rgba(255,243,230,0) 55%),
       var(--bg);
     -webkit-font-smoothing:antialiased;
     text-rendering:optimizeLegibility;
@@ -131,11 +131,10 @@
     color:var(--ink);
   }
   h1 .hl{
-    background:linear-gradient(180deg, rgba(31,136,61,0) 62%, rgba(31,136,61,.16) 62%);
+    background:linear-gradient(180deg, rgba(234,88,12,0) 60%, rgba(234,88,12,.22) 60%);
     border-radius:2px;
     padding:0 1px;
   }
-  h1 em{ font-style:italic; }
   .sub{
     font-size:clamp(15px,1.5vw,17.5px);
     line-height:1.5;
@@ -223,7 +222,7 @@
   .demowrap::before{
     content:"";
     position:absolute; inset:-7% -3% -10%;
-    background:radial-gradient(60% 60% at 50% 30%, rgba(9,105,218,.14), rgba(9,105,218,0) 70%);
+    background:radial-gradient(60% 60% at 50% 30%, rgba(234,88,12,.16), rgba(234,88,12,0) 70%);
     filter:blur(8px);
     z-index:0;
   }
@@ -285,7 +284,7 @@
         <span class="lead"><span class="dot" aria-hidden="true"></span>Free &amp; open source · runs on your Codex</span>
       </div>
 
-      <h1>The <em>Open Source</em> AI Code Reviewer</h1>
+      <h1>The <span class="hl">Open Source</span> AI Code Reviewer</h1>
 
       <p class="sub">Self-hosted AI agents that review pull requests guided by your prompts — all on <b>your own Codex subscription</b>.</p>
 
