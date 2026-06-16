@@ -4,8 +4,7 @@ import { dirname, join } from 'node:path'
 import { log } from './log.js'
 
 const CONFIG_DIR =
-  process.env.SNAILDIT_CONFIG_DIR ??
-  join(process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config'), 'snaildit')
+  process.env.SNAILDIT_CONFIG_DIR ?? join(process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config'), 'snaildit')
 
 export const paths = {
   dir: CONFIG_DIR,

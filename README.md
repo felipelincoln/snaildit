@@ -28,7 +28,7 @@ This opens a local dashboard with three steps: create a GitHub App you own, pick
 
 - Node.js >= 24.15
 - A [Codex](https://developers.openai.com/codex/cli/) subscription (logged in via the dashboard)
-- The [`gh`](https://cli.github.com/) CLI on your PATH — it injects its own short-lived token, so you don't authenticate `gh` yourself.
+- The [`gh`](https://cli.github.com/) CLI on your PATH — Snaild.it hands it a short-lived GitHub App token per run (via `GH_TOKEN`), so you don't authenticate `gh` yourself.
 - macOS or Linux (Windows isn't supported yet)
 
 (`cloudflared` is downloaded automatically on first run.)
