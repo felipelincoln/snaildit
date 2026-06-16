@@ -37,7 +37,7 @@ export default function App() {
   }, [state?.appSlug])
 
   useEffect(() => {
-    document.title = bot?.name ?? 'github-ai-bot'
+    document.title = bot?.name ?? 'Snaild.it'
     const href = bot ? `/api/avatar?v=${encodeURIComponent(bot.slug)}` : '/api/avatar'
     document.querySelectorAll('link[rel="icon"]').forEach((el) => {
       el.remove()

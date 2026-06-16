@@ -29,7 +29,7 @@ jobs:
       - name: Smoke-test the built server
         shell: bash
         run: |
-          export GITHUB_AI_BOT_CONFIG_DIR="$(mktemp -d)"
+          export SNAILDIT_CONFIG_DIR="$(mktemp -d)"
           export PORT=4999
           node dist/cli.js start &
           pid=$!

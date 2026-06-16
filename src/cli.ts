@@ -42,6 +42,6 @@ if (command === 'start') {
     process.exit(1)
   }
 } else {
-  process.stderr.write('usage: github-ai-bot start\n')
+  process.stderr.write('usage: snaildit start\n')
   process.exit(1)
 }

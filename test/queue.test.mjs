@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 
 // config.ts reads the config dir at module load, so set it before importing.
-process.env.GITHUB_AI_BOT_CONFIG_DIR = mkdtempSync(join(tmpdir(), 'gab-test-queue-'))
+process.env.SNAILDIT_CONFIG_DIR = mkdtempSync(join(tmpdir(), 'gab-test-queue-'))
 const { ensureConfigDir, paths } = await import('../dist/config.js')
 const { ingestDelivery, openDb } = await import('../dist/deliveries.js')
 const { MAX_ATTEMPTS, ack, deleteJobsFor, fail, getSession, leaseNext, reclaimOrphans, setJobPid, setSession } =

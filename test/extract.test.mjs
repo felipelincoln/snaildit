@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-process.env.GITHUB_AI_BOT_CONFIG_DIR = mkdtempSync(join(tmpdir(), 'gab-test-extract-'))
+process.env.SNAILDIT_CONFIG_DIR = mkdtempSync(join(tmpdir(), 'gab-test-extract-'))
 const { extract } = await import('../dist/extract.js')
 const { verifySignature } = await import('../dist/webhook.js')
 

@@ -14,7 +14,7 @@ export function acquireInstanceLock(): void {
   } catch {}
   if (holder !== null && processMatches(holder, 'cli.js')) {
     throw new Error(
-      `another github-ai-bot instance is already running (pid ${holder}). ` +
+      `another snaildit instance is already running (pid ${holder}). ` +
         `Stop it first, or delete ${paths.lock} if you're sure it's gone.`,
     )
   }

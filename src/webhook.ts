@@ -126,7 +126,7 @@ export function startWebhookServer(secret: string): Promise<WebhookServer> {
     }
     if ((method === 'GET' || method === 'HEAD') && url === '/') {
       res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
-      res.end('github-ai-bot\n')
+      res.end('snaildit\n')
       return
     }
     send(res, 404, 'not found\n')

@@ -78,7 +78,7 @@ function ReposSummary() {
 export function SetupWizard({ state, onAdvance }: { state: State; onAdvance: () => void }) {
   return (
     <div className="mt-8 w-full max-w-lg">
-      <h1 className="text-lg font-normal tracking-tight">Set up github-ai-bot</h1>
+      <h1 className="text-lg font-normal tracking-tight">Set up Snaild.it</h1>
       <p className="mb-6 text-sm text-muted-foreground">A few steps and your bot is live.</p>
       <ol>
         {STEPS.map((step, i) => {

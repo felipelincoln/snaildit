@@ -4,15 +4,15 @@ import { dirname, join } from 'node:path'
 import { log } from './log.js'
 
 const CONFIG_DIR =
-  process.env.GITHUB_AI_BOT_CONFIG_DIR ??
-  join(process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config'), 'github-ai-bot')
+  process.env.SNAILDIT_CONFIG_DIR ??
+  join(process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config'), 'snaildit')
 
 export const paths = {
   dir: CONFIG_DIR,
   config: join(CONFIG_DIR, 'config.json'),
   automations: join(CONFIG_DIR, 'automations.json'),
   pem: join(CONFIG_DIR, 'private-key.pem'),
-  db: join(CONFIG_DIR, 'github-ai-bot.db'),
+  db: join(CONFIG_DIR, 'snaildit.db'),
   tunnelPid: join(CONFIG_DIR, 'cloudflared.pid'),
   lock: join(CONFIG_DIR, 'instance.lock'),
 } as const

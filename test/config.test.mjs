@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-process.env.GITHUB_AI_BOT_CONFIG_DIR = mkdtempSync(join(tmpdir(), 'gab-test-config-'))
+process.env.SNAILDIT_CONFIG_DIR = mkdtempSync(join(tmpdir(), 'gab-test-config-'))
 const { ensureConfigDir, loadConfig, paths, readJsonFile } = await import('../dist/config.js')
 const { createAutomation, getAutomation, listAutomations, updateAutomation } = await import('../dist/automations.js')
 ensureConfigDir()

@@ -1,48 +1,43 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/felipelincoln/github-ai-bot/main/web/public/logo.png" alt="github-ai-bot" width="96" />
+  <img src="https://raw.githubusercontent.com/felipelincoln/snaildit/main/web/public/logo.png" alt="Snaild.it" width="96" />
 </p>
 
-<h1 align="center">github-ai-bot</h1>
+<h1 align="center">Snaild.it</h1>
 
-<p align="center">A self-hosted GitHub AI bot running on your Codex subscription.</p>
+<p align="center">The open-source AI code reviewer that runs on your own Codex subscription.</p>
 
 ---
 
-Point it at your repositories, describe what you want in plain English, and it acts on issues and pull requests for you:
+Snaild.it listens to your repository's webhooks and, on each event, runs `codex exec` on your machine with a prompt you wrote — so it reviews pull requests, triages issues, and pushes fixes exactly how you tell it to. It acts through the `gh` CLI as a GitHub App **you own**, on **your** Codex subscription: no API keys, no per-token billing, no backend to host.
 
-- **Review pull requests** — inline comments, summaries, approve/request-changes.
-- **Triage issues** — label, answer, ask for missing details, close duplicates.
-- **Write code** — push commits and open pull requests that fix the issue.
-- **Reply in threads** — respond to review comments and issue comments.
-
-It acts through the `gh` CLI as a GitHub App **you own**, so it can do anything you grant it — and nothing you don't.
-
-Every run is your own [Codex](https://developers.openai.com/codex/cli/) CLI invocation on **your subscription**. No API keys, no per-token billing, no app backend to host. Your machine, your subscription, your bot.
+> [!CAUTION]
+> **Snaild.it runs `codex exec` on your machine** — an AI agent with write access to the working directory and network access. Use it deliberately:
+> - A bad (or malicious) prompt can modify your checked-out code or exfiltrate data over the network.
+> - On a **public** repo, anyone who opens an issue or PR feeds text into the agent's prompt — a prompt-injection path to your machine. Start with **private repos you trust**.
+> - Scope the GitHub App's permissions to the minimum, and don't run it on a machine holding secrets you can't afford to leak.
 
 ## Quickstart
 
 ```sh
-npx github-ai-bot start
+npx snaildit start
 ```
 
-This opens a local dashboard that walks you through three steps: create a GitHub App you own, choose which repositories it can touch, and connect Codex. After that it runs your automations from your machine.
+This opens a local dashboard with three steps: create a GitHub App you own, pick which repositories it can touch, and connect Codex. After that it runs your automations from your machine.
 
 ## Requirements
 
 - Node.js >= 24.15
 - A [Codex](https://developers.openai.com/codex/cli/) subscription (logged in via the dashboard)
-- The [`gh`](https://cli.github.com/) CLI on your PATH — the bot runs it to act on GitHub. It injects its own short-lived token, so you don't need to authenticate `gh` yourself.
+- The [`gh`](https://cli.github.com/) CLI on your PATH — it injects its own short-lived token, so you don't authenticate `gh` yourself.
 - macOS or Linux (Windows isn't supported yet)
 
-(`cloudflared` is downloaded automatically on first run — nothing to install.)
+(`cloudflared` is downloaded automatically on first run.)
 
 ## From source
 
-To develop, or run an unreleased build:
-
 ```sh
-git clone https://github.com/felipelincoln/github-ai-bot
-cd github-ai-bot
+git clone https://github.com/felipelincoln/snaildit
+cd snaildit
 npm install
 npm run build
 npm start

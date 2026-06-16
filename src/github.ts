@@ -5,7 +5,7 @@ import { throttling } from '@octokit/plugin-throttling'
 import { paginateRest } from '@octokit/plugin-paginate-rest'
 import { loadConfig, readPem, saveConfig, writePem } from './config.js'
 
-const USER_AGENT = 'github-ai-bot'
+const USER_AGENT = 'snaildit'
 const GH_API = 'https://api.github.com'
 const REQUEST_TIMEOUT_MS = 10_000
 
@@ -277,8 +277,8 @@ export interface AppManifest {
 export function buildManifest(name: string, redirectUrl: string, isPublic: boolean): AppManifest {
   return {
     name,
-    url: 'https://github.com/felipelincoln/github-ai-bot',
-    hook_attributes: { url: 'https://github.com/felipelincoln/github-ai-bot', active: true },
+    url: 'https://github.com/felipelincoln/snaildit',
+    hook_attributes: { url: 'https://github.com/felipelincoln/snaildit', active: true },
     redirect_url: redirectUrl,
     public: isPublic,
     default_permissions: {

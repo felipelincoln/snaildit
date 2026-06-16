@@ -1,17 +1,17 @@
 {
-  "name": "github-ai-bot",
+  "name": "snaildit",
   "version": "0.1.0",
   "description": "A self-hosted GitHub AI bot running on your Codex subscription.",
   "type": "module",
   "license": "MIT",
   "author": "Felipe Lincoln <felipe8d63@gmail.com>",
-  "homepage": "https://github.com/felipelincoln/github-ai-bot#readme",
+  "homepage": "https://github.com/felipelincoln/snaildit#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/felipelincoln/github-ai-bot.git"
+    "url": "git+https://github.com/felipelincoln/snaildit.git"
   },
   "bugs": {
-    "url": "https://github.com/felipelincoln/github-ai-bot/issues"
+    "url": "https://github.com/felipelincoln/snaildit/issues"
   },
   "keywords": [
     "github",
@@ -26,7 +26,7 @@
     "node": ">=24.15"
   },
   "bin": {
-    "github-ai-bot": "dist/cli.js"
+    "snaildit": "dist/cli.js"
   },
   "files": [
     "dist"
